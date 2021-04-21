@@ -1,47 +1,50 @@
 #!/usr/bin/env groovy
 
-import java.net.URL
-
-node{
+node {
     stage('Git Checkout'){
-        git 'https://github.com/npsoni88/DevOpsClassCodes.git'
+        // code execution
+        git 'https://github.com/vsbopi/DevOpsClassCodes.git'
     }
-    stage('Compile'){
-        withMaven(maven:'MyMaven'){
+    stage('Addressbook Compile'){
+        // code execution
+        withMaven(maven:'JenkinsMaven'){
             sh 'mvn compile'
         }
     }
-    stage('Code Review'){
-        try{
-            withMaven(maven:'MyMaven'){
-                sh 'mvn pmd:pmd'
-            }
-        }finally{
-            pmd canComputeNew: false, defaultEncoding: '', healthy: '', pattern: 'target/pmd.xml', unHealthy: ''
+    stage('Addressbook Review'){
+        // code execution
+        withMaven(maven:'JenkinsMaven'){
+            sh 'mvn pmd:pmd'
         }
+    }
+    stage ('Publish Static Analysis Reports using PMD'){
+        //These settings are called out separately and not included in the preceding stage as it will create a concurrency issue
+        recordIssues(tools: [pmdParser(pattern: 'target/pmd.xml')])  
     }
     stage('Test'){
-        try{
-            withMaven(maven:'MyMaven'){
-                sh 'mvn test'
-            }
-        } finally{
-            junit 'target/surefire-reports/*.xml'
-        } 
-    }
-    stage('Code Coverage'){
-        try{
-            withMaven(maven:'MyMaven'){
-                sh 'mvn cobertura:cobertura -Dcobertura.report.format=xml'
-            }
-        }finally{
-            cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'target/site/cobertura/coverage.xml', conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+        // code execution
+        withMaven(maven:'JenkinsMaven'){
+            sh 'mvn test'
         }
     }
+    stage ('Publish Test Reports using Surefire'){
+        //These settings are called out separately and not included in the preceding stage as it will create a concurrency issue
+        junit 'target/surefire-reports/*.xml'
+    }
+    stage('Coverage Check'){
+        // code execution
+        withMaven(maven:'JenkinsMaven'){
+            sh 'mvn cobertura:cobertura -Dcobertura.report.format=xml'
+        }
+    }
+    stage ('Publish Coverage Report using Cobertura'){
+        //These settings are called out separately and not included in the preceding stage as it will create a concurrency issue
+        cobertura autoUpdateHealth: false, autoUpdateStability: false, coberturaReportFile: 'target/site/cobertura/coverage.xml', conditionalCoverageTargets: '70, 0, 0', failUnhealthy: false, failUnstable: false, lineCoverageTargets: '80, 0, 0', maxNumberOfBuilds: 0, methodCoverageTargets: '80, 0, 0', onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+    }
     stage('Package'){
-        withMaven(maven:'MyMaven'){
+        // code execution
+        withMaven(maven:'JenkinsMaven'){
             sh 'mvn package'
         }
     }
-   
 }
